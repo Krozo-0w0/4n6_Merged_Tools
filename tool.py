@@ -1,4 +1,5 @@
 import subprocess, os, datetime
+import pandas as pd
 
 location = None
 
@@ -11,16 +12,16 @@ filefolder = "ExtractedFiles"
 #csv/csvf, json/jsonf
 filetype = "csv"
 dateTime = "yyyy-MM-dd HH:mm:ss.fffffff"
-drive = "c:\\"
-mftLocation = "c:\\$MFT"
-batchPath = None
+drive = "example_files\\"
+mftLocation = "example_files\\$MFT"
+batchPath = "BatchExamples\\DFIRBatch.reb"
 mapPath = None
 
 def create_unique_directory(base_path="ExtractedFiles\\"):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     dir_name = os.path.join(base_path, timestamp)
     os.makedirs(dir_name, exist_ok=True)
-    return dir_name
+    return dir_name + "\\"
 
 def showConfig():
     print("Current Configuration: ")
@@ -36,7 +37,7 @@ def showConfig():
     if mapPath == None:
         print("[5] Map (EVTXECMD): Not set")
     else:
-        print("[5] Map (EVTXECMD): " + batchPath)
+        print("[5] Map (EVTXECMD): " + mapPath)
     
     print("[6] MFT Location: " + mftLocation)
     
@@ -44,20 +45,9 @@ def showConfig():
         
     print("Location to Save \"ExtractedFiles\"")
         
+        
 def recmd():
     os.system("RECmd.exe --help")
-    # os.system(RECMD)
-    # print("Enter \"help\" to show inputs")
-    # print("Enter \"exit\" to return to main menu")
-    # while(True):    
-    #     prompt = input("Command: ")
-        
-    #     if prompt == "exit":
-    #         return
-    #     elif prompt == "help":
-    #         os.system(RECMD)
-    #     else:
-    #         os.system(RECMD + " " + prompt)
     return
 
 def evtxecmd():
@@ -76,26 +66,34 @@ def execute():
     
     folderpath = create_unique_directory()
     
-    #Recmd
+    # RECmd
     print("Executing RECmd")
-    os.mkdir(folderpath + "\\recmd")
-    recmdCommand = f"RECmd.exe -d {drive} --bn {batchPath}  --{filetype + " " + folderpath + "\\recmd"}"
-    subprocess.Popen(recmdCommand, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) 
-    
-    #MFTECmd
+    recmdCommand = f"RECmd.exe -d {drive} --bn {batchPath} --{filetype + ' ' + folderpath} --csvf recmd.csv"
+    recmdProcess = subprocess.Popen(recmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # MFTECmd
     print("Executing MFTECmd")
-    os.mkdir(folderpath + "\\mftecmd")
-    mftecmdCommand = f"MFTECmd.exe -f {mftLocation}  --{filetype + " " + folderpath + "\\mftecmd"}"
-    subprocess.Popen(mftecmdCommand, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
-    #evtxecmd
+    mftecmdCommand = f"MFTECmd.exe -f {mftLocation} -m {mftLocation} --{filetype + ' ' + folderpath} --csvf mftecmd.csv"
+    mftecmdProcess = subprocess.Popen(mftecmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # EvtxECmd
     print("Executing EvtxECmd")
-    os.mkdir(folderpath + "\\evtxecmd")
-    evtxecmdCommand = f"EvtxECmd.exe -d {drive} --{filetype + " " + folderpath + "\\evtxecmd"}"
-    subprocess.Popen(evtxecmdCommand, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    evtxecmdCommand = f"EvtxECmd.exe -d {drive} --{filetype + ' ' + folderpath} --csvf evtxecmd.csv"
+    evtxecmdProcess = subprocess.Popen(evtxecmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    
+    recmdProcess.wait()
+    mftecmdProcess.wait()
+    evtxecmdProcess.wait()
+    
+    
+    merge_csv(folderpath)
+    
     
     print("All Data are bing Extracted in the background please wait for it to finish.")
+    print(f"Output folder: {folderpath}")
     input("Entery anything to continue...")
+    
 
 def merged():
     global batchPath
@@ -137,6 +135,27 @@ def merged():
             print("Invalid Input!!")
         
 
+def merge_csv(folderpath = "ExtractedFiles\\2025-02-20_11-24-18\\"):
+    
+    print("Current Working Directory: " + folderpath)
+
+    try:
+        
+        df = pd.read_csv(folderpath + "mftecmd.csv", low_memory=False)
+        df2 = pd.read_csv(folderpath + "evtxecmd.csv", low_memory=False)
+        df3 = pd.read_csv(folderpath + "recmd.csv", low_memory=False)  
+        
+        df4 = pd.merge(df, df2, left_on='Created0x10', right_on='TimeCreated')
+        df5 = pd.merge(df3, df4, left_on='LastWriteTimestamp', right_on='LastRecordChange0x10')
+        df5.to_csv(folderpath + "merged_file.csv")
+      
+        print("Done Merge")
+        
+    except FileNotFoundError:
+        print("Error file1 or file2 doesn't exist please double check")
+    except Exception as e:
+        print(e)
+    return
 
 
 def main():
@@ -148,6 +167,7 @@ def main():
         print("[2] EVTXCmd")
         print("[3] MFTECmd")
         print("[4] Merged")
+        print("[5] Merge csv output")
         print("[-1] Exit")
         in1 = input("Input: ")
         
@@ -159,6 +179,8 @@ def main():
             mftecmd()
         elif in1 == "4":
             merged()
+        elif in1 == "5":
+            merge_csv()
         elif in1 == "-1":
             break
         else:
