@@ -1,12 +1,13 @@
-Needs to Install:
+Needs to Install the following:
+Install Link: https://www.sans.org/tools/ez-tools/
+1. REcmd
+2. Evtxcmd
+3. MFTEcmd
 
-https://www.sans.org/tools/ez-tools/
-REcmd
-Evtxcmd
-MFTEcmd
+Install Link: https://dotnet.microsoft.com/en-us/download
+1. Download latest version of the .NET to use th ez-tools
 
-Download latest version of the .NET
-https://dotnet.microsoft.com/en-us/download
-
-Similarities with RECmd and Evtxcmd
--d or -f command either single or directory scan
+Install the required library
+```
+pip install -r requirements.txt
+```
