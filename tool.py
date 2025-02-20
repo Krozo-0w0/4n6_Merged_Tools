@@ -15,7 +15,7 @@ dateTime = "yyyy-MM-dd HH:mm:ss.fffffff"
 drive = "example_files\\C\\"
 mftLocation = "example_files\\C\\$MFT"
 batchPath = "BatchExamples\\DFIRBatch.reb"
-mapPath = None
+mapPath = ""
 
 def create_unique_directory(base_path="ExtractedFiles\\"):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -34,7 +34,7 @@ def showConfig():
     else:
         print("[4] Batch (RECmd): " + batchPath)
         
-    if mapPath == None:
+    if mapPath == "":
         print("[5] Map (EVTXECMD): Not set")
     else:
         print("[5] Map (EVTXECMD): " + mapPath)
@@ -56,17 +56,17 @@ def execute():
     
     # RECmd
     print("Executing RECmd")
-    recmdCommand = f"RECmd.exe -d {drive} --bn {batchPath} --{filetype + ' ' + folderpath + "Individual\\"} --csvf recmd.csv"
+    recmdCommand = f"RECmd.exe -d {drive} --bn {batchPath} --{filetype} {folderpath + "Individual\\"} --dt \"{dateTime}\" --csvf recmd.csv"
     recmdProcess = subprocess.Popen(recmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # MFTECmd
     print("Executing MFTECmd")
-    mftecmdCommand = f"MFTECmd.exe -f {mftLocation} -m {mftLocation} --{filetype + ' ' + folderpath + "Individual\\"} --csvf mftecmd.csv"
+    mftecmdCommand = f"MFTECmd.exe -f {mftLocation} -m {mftLocation} --{filetype} {folderpath + "Individual\\"} --dt \"{dateTime}\" --csvf mftecmd.csv"
     mftecmdProcess = subprocess.Popen(mftecmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # EvtxECmd
     print("Executing EvtxECmd")
-    evtxecmdCommand = f"EvtxECmd.exe -d {drive} --{filetype + ' ' + folderpath + "Individual\\"} --csvf evtxecmd.csv"
+    evtxecmdCommand = f"EvtxECmd.exe -d {drive} --{filetype} {folderpath + "Individual\\"} {mapPath} --dt \"{dateTime}\" --csvf evtxecmd.csv"
     evtxecmdProcess = subprocess.Popen(evtxecmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     print("All Data are being Extracted in the background please wait for it to finish.")
@@ -109,6 +109,7 @@ def merged():
             batchPath = input("Find the Batch Files inside the Batch Example folder: ")
         elif "5" == in1:
             mapPath = input("Find in the Map folder")
+            mapPath = "--maps " + mapPath
         elif "6" == in1:
             mftLocation = input("Enter Location of MFT")
         elif "7" == in1:
