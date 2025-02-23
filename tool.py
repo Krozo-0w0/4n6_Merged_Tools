@@ -25,7 +25,7 @@ def create_unique_directory(base_path="ExtractedFiles\\"):
 
 def showConfig():
     print("Current Configuration: ")
-    print(f"[1] File type (csv or json): {filetype}")
+    print(f"[1] File type (Dont Change): {filetype}")
     print(f"[2] Date/Time Format: {dateTime}")
     print(f"[3] Location: {drive}")
     
@@ -92,7 +92,7 @@ def merged():
         os.system('cls')
         showConfig()
         in1 = input("Option: ")
-        if "1" == in1:
+        if "1" == in1:      
             in2 = input("[1] csv or [2] json")
             
             if "1" == in2:
@@ -121,20 +121,34 @@ def merged():
             break
         else:
             print("Invalid Input!!")
+            
+            
+def mark_csv(df, mark, filepath):
+    for col in df.columns:
+        df = df.rename(columns={col: str(col) + " " +mark})
         
+    df.to_csv(filepath)
+    return df
+    
 
 def merge_csv(folderpath):
     
     print("Current Working Directory: " + folderpath)
 
     try:
-        
         df = pd.read_csv(folderpath + "Individual\\mftecmd.csv", low_memory=False)
         df2 = pd.read_csv(folderpath + "Individual\\evtxecmd.csv", low_memory=False)
         df3 = pd.read_csv(folderpath + "Individual\\recmd.csv", low_memory=False)  
         
-        df4 = pd.merge(df, df2, left_on='Created0x10', right_on='TimeCreated')
-        df5 = pd.merge(df3, df4, left_on='LastWriteTimestamp', right_on='LastRecordChange0x10')
+        df = mark_csv(df, "(MFTECMD)", folderpath + "Individual\\mftecmd.csv")
+        df2 = mark_csv(df2, "(EVTXECMD)", folderpath + "Individual\\evtxecmd.csv")
+        df3 = mark_csv(df3, "(RECMD)", folderpath + "Individual\\recmd.csv")
+          
+        df4 = pd.merge(df, df2, left_on='Created0x10 (MFTECMD)', right_on='TimeCreated (EVTXECMD)')
+        df5 = pd.merge(df3, df4, left_on='LastWriteTimestamp (RECMD)', right_on='LastRecordChange0x10 (MFTECMD)')
+
+        df5 = clean_output(df5)
+        
         df5.to_csv(folderpath + "merged_file.csv")
       
         print("Done Merge to file \"merged_file.csv\"")
@@ -145,6 +159,20 @@ def merge_csv(folderpath):
         print(e)
     return
 
+def clean_output(df):
+    df = df.rename(columns={"Created0x10 (MFTECMD)": "Created0x10 (MFTECMD<->EVTXECMD)"})
+    df = df.rename(columns={"LastWriteTimestamp (RECMD)": "LastWriteTimestamp (MFTECMD<->RECMD)"})
+    
+    df.dropna(how='all', axis=1, inplace=True)
+    df = df.sort_values("LastWriteTimestamp (MFTECMD<->RECMD)", ascending=True)
+    df = df.drop(df.columns[0], axis=1) #remove the first column because it is a sequence number
+    df = df.reset_index(drop=True)
+    col = df.pop("LastWriteTimestamp (MFTECMD<->RECMD)")
+    df.insert(0, "LastWriteTimestamp (MFTECMD<->RECMD)", col)
+    
+    return df
+    
+    
 
 def main():
     print("Mini Project 2")
@@ -152,9 +180,10 @@ def main():
     print("1. MFTECmd")
     print("2. EvtxECmd")
     print("3. RECmd")
-
+    
     merged()
 
+    
 
 if __name__ == "__main__":
     main()
