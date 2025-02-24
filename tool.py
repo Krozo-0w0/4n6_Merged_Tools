@@ -1,5 +1,6 @@
 import subprocess, os, datetime
 import pandas as pd
+import numpy as np
 
 location = None
 
@@ -149,6 +150,7 @@ def merge_csv(folderpath):
 
         df5 = clean_output(df5)
         
+        df5 = df5.astype(object)  # Convert entire DataFrame to object type
         df5.fillna("NaN", inplace=True)
 
         df5.to_csv(folderpath + "merged_file.csv")
