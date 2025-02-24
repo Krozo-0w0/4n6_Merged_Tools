@@ -150,9 +150,6 @@ def merge_csv(folderpath):
 
         df5 = clean_output(df5)
         
-        df5 = df5.astype(object)  # Convert entire DataFrame to object type
-        df5.fillna("NaN", inplace=True)
-
         df5.to_csv(folderpath + "merged_file.csv")
       
         print("Done Merge to file \"merged_file.csv\"")
@@ -171,6 +168,8 @@ def clean_output(df):
     df = df.reset_index(drop=True)
     col = df.pop("LastWriteTimestamp (MFTECMD<->RECMD)")
     df.insert(0, "LastWriteTimestamp (MFTECMD<->RECMD)", col)
+    df = df.astype(object)  # Convert entire DataFrame to object type
+    df.fillna("NaN", inplace=True)
     
     return df
     
