@@ -149,6 +149,8 @@ def merge_csv(folderpath):
 
         df5 = clean_output(df5)
         
+        df5.fillna("NaN", inplace=True)
+
         df5.to_csv(folderpath + "merged_file.csv")
       
         print("Done Merge to file \"merged_file.csv\"")
