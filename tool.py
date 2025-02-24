@@ -164,8 +164,6 @@ def merge_csv(folderpath):
 def clean_output(df):
     df = df.rename(columns={"Created0x10 (MFTECMD)": "Created0x10 (MFTECMD<->EVTXECMD)"})
     df = df.rename(columns={"LastWriteTimestamp (RECMD)": "LastWriteTimestamp (MFTECMD<->RECMD)"})
-    
-    df.dropna(how='all', axis=1, inplace=True)
     df = df.sort_values("LastWriteTimestamp (MFTECMD<->RECMD)", ascending=True)
     df = df.drop(df.columns[0], axis=1) #remove the first column because it is a sequence number
     df = df.reset_index(drop=True)
