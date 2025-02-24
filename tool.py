@@ -1,5 +1,6 @@
 import subprocess, os, datetime
 import pandas as pd
+import numpy as np
 
 location = None
 
@@ -149,6 +150,9 @@ def merge_csv(folderpath):
 
         df5 = clean_output(df5)
         
+        df5 = df5.astype(object)  # Convert entire DataFrame to object type
+        df5.fillna("NaN", inplace=True)
+
         df5.to_csv(folderpath + "merged_file.csv")
       
         print("Done Merge to file \"merged_file.csv\"")
@@ -162,8 +166,6 @@ def merge_csv(folderpath):
 def clean_output(df):
     df = df.rename(columns={"Created0x10 (MFTECMD)": "Created0x10 (MFTECMD<->EVTXECMD)"})
     df = df.rename(columns={"LastWriteTimestamp (RECMD)": "LastWriteTimestamp (MFTECMD<->RECMD)"})
-    
-    df.dropna(how='all', axis=1, inplace=True)
     df = df.sort_values("LastWriteTimestamp (MFTECMD<->RECMD)", ascending=True)
     df = df.drop(df.columns[0], axis=1) #remove the first column because it is a sequence number
     df = df.reset_index(drop=True)
