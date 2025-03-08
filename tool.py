@@ -57,17 +57,17 @@ def execute():
     
     # RECmd
     print("Executing RECmd")
-    recmdCommand = f"RECmd.exe -d {drive} --bn {batchPath} --{filetype} {folderpath + "Individual\\"} --dt \"{dateTime}\" --csvf recmd.csv"
+    recmdCommand = f"RECmd.exe -d {drive} --bn {batchPath} --{filetype} {folderpath}Individual\\ --dt \"{dateTime}\" --csvf recmd.csv"
     recmdProcess = subprocess.Popen(recmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # MFTECmd
     print("Executing MFTECmd")
-    mftecmdCommand = f"MFTECmd.exe -f {mftLocation} -m {mftLocation} --{filetype} {folderpath + "Individual\\"} --dt \"{dateTime}\" --csvf mftecmd.csv"
+    mftecmdCommand = f"MFTECmd.exe -f {mftLocation} -m {mftLocation} --{filetype} {folderpath}Individual\\ --dt \"{dateTime}\" --csvf mftecmd.csv"
     mftecmdProcess = subprocess.Popen(mftecmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # EvtxECmd
     print("Executing EvtxECmd")
-    evtxecmdCommand = f"EvtxECmd.exe -d {drive} --{filetype} {folderpath + "Individual\\"} {mapPath} --dt \"{dateTime}\" --csvf evtxecmd.csv"
+    evtxecmdCommand = f"EvtxECmd.exe -d {drive} --{filetype} {folderpath}Individual\\ {mapPath} --dt \"{dateTime}\" --csvf evtxecmd.csv"
     evtxecmdProcess = subprocess.Popen(evtxecmdCommand, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     print("All Data are being Extracted in the background please wait for it to finish.")
