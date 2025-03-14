@@ -1,22 +1,23 @@
 import subprocess, os, datetime
 import pandas as pd
 import numpy as np
+import pytz
 
 location = None
 
-#filepaths of the tools
 MFTECMD = r"MFTECmd.exe"
 EVTXECMD = r"EvtxeCmd.exe"
 RECMD = r"RECmd.exe"
 filefolder = "ExtractedFiles"
 
-#csv/csvf, json/jsonf
 filetype = "csv"
 dateTime = "yyyy-MM-dd HH:mm:ss.fffffff"
 drive = "example_files\\C\\"
 mftLocation = "example_files\\C\\$MFT"
 batchPath = "BatchExamples\\DFIRBatch.reb"
 mapPath = ""
+
+timezone = pytz.timezone('UTC')
 
 def create_unique_directory(base_path="ExtractedFiles\\"):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -47,7 +48,7 @@ def showConfig():
     print("[-1] Exit")
         
     print("Location to Save \"ExtractedFiles\"")
-        
+
 def execute():
     global batchPath
     global mapPath
@@ -75,12 +76,10 @@ def execute():
     mftecmdProcess.wait()
     evtxecmdProcess.wait()
     
-    
     merge_csv(folderpath)
     
     print(f"Output folder: {folderpath}")
-    input("Entery anything to continue...")
-    
+    input("Enter anything to continue...")
 
 def merged():
     global batchPath
@@ -123,17 +122,20 @@ def merged():
         else:
             print("Invalid Input!!")
             
-            
 def mark_csv(df, mark, filepath):
+    df['Artifact'] = mark
     for col in df.columns:
-        df = df.rename(columns={col: str(col) + " " +mark})
+        df = df.rename(columns={col: str(col) + " " + mark})
         
     df.to_csv(filepath)
     return df
-    
+
+def normalize_timestamp(df, timestamp_column):
+    df[timestamp_column] = pd.to_datetime(df[timestamp_column], errors='coerce')  
+    df[timestamp_column] = df[timestamp_column].dt.tz_localize('UTC', ambiguous='NaT') 
+    return df
 
 def merge_csv(folderpath):
-    
     print("Current Working Directory: " + folderpath)
 
     try:
@@ -144,17 +146,31 @@ def merge_csv(folderpath):
         df = mark_csv(df, "(MFTECMD)", folderpath + "Individual\\mftecmd.csv")
         df2 = mark_csv(df2, "(EVTXECMD)", folderpath + "Individual\\evtxecmd.csv")
         df3 = mark_csv(df3, "(RECMD)", folderpath + "Individual\\recmd.csv")
-          
+        
         df4 = pd.merge(df, df2, left_on='Created0x10 (MFTECMD)', right_on='TimeCreated (EVTXECMD)')
+
         df5 = pd.merge(df3, df4, left_on='LastWriteTimestamp (RECMD)', right_on='LastRecordChange0x10 (MFTECMD)')
 
         df5 = clean_output(df5)
-        
+
         df5 = df5.astype(object)  # Convert entire DataFrame to object type
+
         df5.fillna("NaN", inplace=True)
 
+        df5 = normalize_timestamp(df5, 'LastWriteTimestamp (MFTECMD<->RECMD)')
+
+        df5 = normalize_timestamp(df5, 'Created0x10 (MFTECMD<->EVTXECMD)')
+
+        df5 = normalize_timestamp(df5, 'LastModified0x10 (MFTECMD)')
+
+        df5 = normalize_timestamp(df5, 'LastRecordChange0x10 (MFTECMD)')
+
+        df5 = normalize_timestamp(df5, 'LastAccess0x10 (MFTECMD)')
+
+        df5 = normalize_timestamp(df5, 'TimeCreated (EVTXECMD)')
+
         df5.to_csv(folderpath + "merged_file.csv")
-      
+
         print("Done Merge to file \"merged_file.csv\"")
         
     except FileNotFoundError:
@@ -167,14 +183,12 @@ def clean_output(df):
     df = df.rename(columns={"Created0x10 (MFTECMD)": "Created0x10 (MFTECMD<->EVTXECMD)"})
     df = df.rename(columns={"LastWriteTimestamp (RECMD)": "LastWriteTimestamp (MFTECMD<->RECMD)"})
     df = df.sort_values("LastWriteTimestamp (MFTECMD<->RECMD)", ascending=True)
-    df = df.drop(df.columns[0], axis=1) #remove the first column because it is a sequence number
+    df = df.drop(df.columns[0], axis=1)  
     df = df.reset_index(drop=True)
     col = df.pop("LastWriteTimestamp (MFTECMD<->RECMD)")
     df.insert(0, "LastWriteTimestamp (MFTECMD<->RECMD)", col)
     
     return df
-    
-    
 
 def main():
     print("Mini Project 2")
@@ -184,8 +198,6 @@ def main():
     print("3. RECmd")
     
     merged()
-
-    
 
 if __name__ == "__main__":
     main()
