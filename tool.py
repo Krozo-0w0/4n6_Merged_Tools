@@ -147,19 +147,30 @@ def merge_csv(folderpath):
         df2 = mark_csv(df2, "(EVTXECMD)", folderpath + "Individual\\evtxecmd.csv")
         df3 = mark_csv(df3, "(RECMD)", folderpath + "Individual\\recmd.csv")
         
-        df = normalize_timestamp(df, 'Created0x10 (MFTECMD)')
-        df2 = normalize_timestamp(df2, 'TimeCreated (EVTXECMD)')
-        df3 = normalize_timestamp(df3, 'LastWriteTimestamp (RECMD)')
-       
-        df_combined = pd.concat([df, df2, df3], axis=0, ignore_index=True)
-        
-        df_combined = clean_output(df_combined)
-        
-        df_combined = df_combined.astype(object)  
-        df_combined.fillna("NaN", inplace=True)
+        df4 = pd.merge(df, df2, left_on='Created0x10 (MFTECMD)', right_on='TimeCreated (EVTXECMD)')
 
-        df_combined.to_csv(folderpath + "merged_file.csv")
-      
+        df5 = pd.merge(df3, df4, left_on='LastWriteTimestamp (RECMD)', right_on='LastRecordChange0x10 (MFTECMD)')
+
+        df5 = clean_output(df5)
+
+        df5 = df5.astype(object)  # Convert entire DataFrame to object type
+
+        df5.fillna("NaN", inplace=True)
+
+        df5 = normalize_timestamp(df5, 'LastWriteTimestamp (MFTECMD<->RECMD)')
+
+        df5 = normalize_timestamp(df5, 'Created0x10 (MFTECMD<->EVTXECMD)')
+
+        df5 = normalize_timestamp(df5, 'LastModified0x10 (MFTECMD)')
+
+        df5 = normalize_timestamp(df5, 'LastRecordChange0x10 (MFTECMD)')
+
+        df5 = normalize_timestamp(df5, 'LastAccess0x10 (MFTECMD)')
+
+        df5 = normalize_timestamp(df5, 'TimeCreated (EVTXECMD)')
+
+        df5.to_csv(folderpath + "merged_file.csv")
+
         print("Done Merge to file \"merged_file.csv\"")
         
     except FileNotFoundError:
