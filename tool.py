@@ -5,13 +5,11 @@ import pytz
 
 location = None
 
-# Filepaths of the tools
 MFTECMD = r"MFTECmd.exe"
 EVTXECMD = r"EvtxeCmd.exe"
 RECMD = r"RECmd.exe"
 filefolder = "ExtractedFiles"
 
-# CSV/CSVf, JSON/JSONf
 filetype = "csv"
 dateTime = "yyyy-MM-dd HH:mm:ss.fffffff"
 drive = "example_files\\C\\"
@@ -19,16 +17,17 @@ mftLocation = "example_files\\C\\$MFT"
 batchPath = "BatchExamples\\DFIRBatch.reb"
 mapPath = ""
 
+timezone = pytz.timezone('UTC')
+
 def create_unique_directory(base_path="ExtractedFiles\\"):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     dir_name = os.path.join(base_path, timestamp)
     os.makedirs(dir_name, exist_ok=True)
     return dir_name + "\\"
 
-
 def showConfig():
     print("Current Configuration: ")
-    print(f"[1] File type (Don't Change): {filetype}")
+    print(f"[1] File type (Dont Change): {filetype}")
     print(f"[2] Date/Time Format: {dateTime}")
     print(f"[3] Location: {drive}")
     
@@ -49,7 +48,7 @@ def showConfig():
     print("[-1] Exit")
         
     print("Location to Save \"ExtractedFiles\"")
-        
+
 def execute():
     global batchPath
     global mapPath
@@ -122,9 +121,9 @@ def merged():
             break
         else:
             print("Invalid Input!!")
-
+            
 def mark_csv(df, mark, filepath):
-    df['Artifact Tag'] = mark
+    df['Artifact'] = mark
     for col in df.columns:
         df = df.rename(columns={col: str(col) + " " + mark})
         
@@ -132,8 +131,8 @@ def mark_csv(df, mark, filepath):
     return df
 
 def normalize_timestamp(df, timestamp_column):
-    df[timestamp_column] = pd.to_datetime(df[timestamp_column], errors='coerce')
-    df[timestamp_column] = df[timestamp_column].dt.tz_localize('UTC').dt.tz_convert(None)  # Convert to UTC+0 and drop timezone
+    df[timestamp_column] = pd.to_datetime(df[timestamp_column], errors='coerce')  
+    df[timestamp_column] = df[timestamp_column].dt.tz_localize('UTC', ambiguous='NaT') 
     return df
 
 def merge_csv(folderpath):
@@ -144,26 +143,22 @@ def merge_csv(folderpath):
         df2 = pd.read_csv(folderpath + "Individual\\evtxecmd.csv", low_memory=False)
         df3 = pd.read_csv(folderpath + "Individual\\recmd.csv", low_memory=False)  
         
-        # Add Artifact Tags
         df = mark_csv(df, "(MFTECMD)", folderpath + "Individual\\mftecmd.csv")
         df2 = mark_csv(df2, "(EVTXECMD)", folderpath + "Individual\\evtxecmd.csv")
         df3 = mark_csv(df3, "(RECMD)", folderpath + "Individual\\recmd.csv")
         
-        # Normalize Timestamps
         df = normalize_timestamp(df, 'Created0x10 (MFTECMD)')
         df2 = normalize_timestamp(df2, 'TimeCreated (EVTXECMD)')
         df3 = normalize_timestamp(df3, 'LastWriteTimestamp (RECMD)')
-
-        # Merge the dataframes
-        df4 = pd.merge(df, df2, left_on='Created0x10 (MFTECMD)', right_on='TimeCreated (EVTXECMD)')
-        df5 = pd.merge(df3, df4, left_on='LastWriteTimestamp (RECMD)', right_on='LastRecordChange0x10 (MFTECMD)')
-
-        df5 = clean_output(df5)
+       
+        df_combined = pd.concat([df, df2, df3], axis=0, ignore_index=True)
         
-        df5 = df5.astype(object)  # Convert entire DataFrame to object type
-        df5.fillna("NaN", inplace=True)
+        df_combined = clean_output(df_combined)
+        
+        df_combined = df_combined.astype(object)  
+        df_combined.fillna("NaN", inplace=True)
 
-        df5.to_csv(folderpath + "merged_file.csv")
+        df_combined.to_csv(folderpath + "merged_file.csv")
       
         print("Done Merge to file \"merged_file.csv\"")
         
@@ -177,7 +172,7 @@ def clean_output(df):
     df = df.rename(columns={"Created0x10 (MFTECMD)": "Created0x10 (MFTECMD<->EVTXECMD)"})
     df = df.rename(columns={"LastWriteTimestamp (RECMD)": "LastWriteTimestamp (MFTECMD<->RECMD)"})
     df = df.sort_values("LastWriteTimestamp (MFTECMD<->RECMD)", ascending=True)
-    df = df.drop(df.columns[0], axis=1)  # Remove the first column because it is a sequence number
+    df = df.drop(df.columns[0], axis=1)  
     df = df.reset_index(drop=True)
     col = df.pop("LastWriteTimestamp (MFTECMD<->RECMD)")
     df.insert(0, "LastWriteTimestamp (MFTECMD<->RECMD)", col)
