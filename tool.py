@@ -123,7 +123,16 @@ def merged():
             print("Invalid Input!!")
             
 def mark_csv(df, mark, filepath):
-    df['Artifact'] = mark
+    if mark == "(RECMD)":
+        df['Artifact'] = "Registry Hives"
+    elif mark == "(EVTXECMD)":
+        df['Artifact'] = "Windows Event Logs"
+    else:
+        df['Artifact'] = "Master File table"
+    
+    col = df.pop("Artifact")
+    df.insert(1, "Artifact", col)
+    
     for col in df.columns:
         df = df.rename(columns={col: str(col) + " " + mark})
         
